@@ -1,0 +1,39 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: osp-octavia-0
+spec:
+  desiredState:
+    interfaces:
+    - description: octavia vlan interface
+      ipv4:
+        enabled: false
+        dhcp: false
+      ipv6:
+        enabled: false
+      name: octavia
+      state: up
+      type: vlan
+      vlan:
+        base-iface: enp8s0
+        id: 102
+        reorder-headers: true
+    - bridge:
+        options:
+          stp:
+            enabled: false
+        port:
+        - name: octavia
+      ipv4:
+        address:
+        - ip: 10.102.1.10
+          prefix-length: 24
+        enabled: true
+        dhcp: false
+      description: Configuring bridge octbr
+      mtu: 1500
+      name: octbr
+      state: up
+      type: linux-bridge          
+  nodeSelector:
+    kubernetes.io/hostname: master0.rhoso.keenable.in
