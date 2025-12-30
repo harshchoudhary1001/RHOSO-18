@@ -15,16 +15,17 @@ Vlan Information of Infra
 
 
 
-Preparing the Infra on KVM server.
+Preparing Networking on KVM server.
 ------------------------------------------------
 Lab OS: Rocky -8
 
 Install Package - yum install libvirt vim wget virt-* -y
 
 ##Create below network on KVM server:
-network1
-network2
-network3
+
+network1-->No DhcP
+network2-->No DhcP
+network3-->No DhcP
 
 Network Details for Openshift Node
 --------------------------------------------------------
