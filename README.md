@@ -24,7 +24,9 @@ Install Package - yum install libvirt vim wget virt-* -y
 ##Create below network on KVM server:
 
 network1-->No DhcP
+
 network2-->No DhcP
+
 network3-->No DhcP
 
 Network Details for Openshift Node
