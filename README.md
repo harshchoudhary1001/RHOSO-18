@@ -29,7 +29,9 @@ network3
 Network Details for Openshift Node
 --------------------------------------------------------
 Network1 for enp1s0  --> ctlplane                  (Recommend to bond0)
+
 Network2 for enp7s0 ---> Storage network            Recommend to bond1)
+
 Network1 for enp8s0  --> Internal,ctlplane,Tenant,Octavia,Designate and Designate_External (Recommend to bond2)
 
 Note: As we do not require provider on OCP nodes so we can utilise bond2 for extra network required for OSP and we are providing one dedicated bond for openshift.
@@ -38,7 +40,9 @@ Note: As we do not require provider on OCP nodes so we can utilise bond2 for ext
 Network Details for Openstack Compute/DataPlane Node
 --------------------------------------------------------
 Network1 for bond0 --> Internal,ctlplane,Tenant
+
 Network2 for bond1 ---> Storage network
+
 Network3 for bond2  --> Provider Network
 
 
