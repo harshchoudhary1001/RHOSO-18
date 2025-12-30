@@ -13,3 +13,9 @@ Vlan Information of Infra
 |     7 | Octavia              |  102 | tagged    | 10.102.1.10 | 10.102.1.254 | 10.102.1.1 | 10.102.1.0/24 |
 |     8 | Provider Admin 1     |  200 | tagged    | 172.16.1.10 | 172.16.1.250 | 172.16.1.1 | 172.16.1.0/24 |
 
+
+
+Preparing the Infra on KVM server.
+------------------------------------------------
+Lab OS: Rocky -8
+Install Package - yum install libvirt vim wget virt-* -y
