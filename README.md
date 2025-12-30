@@ -18,4 +18,7 @@ Vlan Information of Infra
 Preparing the Infra on KVM server.
 ------------------------------------------------
 Lab OS: Rocky -8
+
 Install Package - yum install libvirt vim wget virt-* -y
+
+###Create network:
