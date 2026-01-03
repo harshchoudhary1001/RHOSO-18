@@ -41,3 +41,25 @@ spec:
     - 10.105.1.80-10.105.1.90
   autoAssign: true
   avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: designateext
+spec:
+  addresses:
+    - 10.104.1.80-10.104.1.120
+  autoAssign: true
+  avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: designate
+spec:
+  addresses:
+    - 10.102.1.80-10.102.1.120
+  autoAssign: true
+  avoidBuggyIPs: false

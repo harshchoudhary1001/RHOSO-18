@@ -31,10 +31,22 @@ spec:
         - storage
         replicas: 0 # backend needs to be configured to activate the service
       cinderVolumes:
-        volume1:
+        ceph:
+          customServiceConfig: |
+            [DEFAULT]
+            enabled_backends=ceph          
+            [ceph]
+            volume_backend_name=ceph
+            volume_driver=cinder.volume.drivers.rbd.RBDDriver
+            rbd_ceph_conf=/etc/ceph/ceph.conf
+            rbd_user=admin
+            rbd_pool=volumes
+            rbd_flatten_volume_from_snapshot=False
+            rbd_secret_uuid=77f8c2de-e245-11f0-9bf2-5254000947d1
+            #volume:
           networkAttachments:
           - storage
-          replicas: 0 # backend needs to be configured to activate the service
+          replicas: 1 # backend needs to be configured to activate the service
   nova:
     apiOverride:
       route: {}
@@ -130,32 +142,6 @@ spec:
       databaseInstance: openstack
       secret: osp-secret
       replicas: 3
-  glance:
-    enabled: true
-    apiOverrides:
-      default:
-        route: {}
-    template:
-      databaseInstance: openstack
-      storage:
-        storageRequest: 5G
-      secret: osp-secret
-      keystoneEndpoint: default
-      glanceAPIs:
-        default:
-          replicas: 3 # Configure back end; set to 3 when deploying service
-          override:
-            service:
-              internal:
-                metadata:
-                  annotations:
-                    metallb.universe.tf/address-pool: internalapi
-                    metallb.universe.tf/allow-shared-ip: internalapi
-                    metallb.universe.tf/loadBalancerIPs: 10.103.1.80
-                spec:
-                  type: LoadBalancer
-          networkAttachments:
-          - storage
   barbican:
     apiOverride:
       route: {}
@@ -187,15 +173,24 @@ spec:
       route: {}
     template:
       customServiceConfig: |
-        [default]
-        global_physnet_mtu = 1500
-        service_plugins=ovn-router,port_forwarding
-        [ml2]
-        mechanism_drivers = ovn
-        [ovn]
-        vhost_sock_dir = /var/lib/vhost_sockets
-        [ml2_type_vlan]
-        network_vlan_ranges = datacentre:10:999
+         [DEFAULT]
+         dns_domain = keenable.org.
+         external_dns_driver = designate
+         [ml2]
+         extension_drivers=qos,port_security,subnet_dns_publish_fixed_ip
+         [designate]
+         url = https://designate-internal.openstack.svc:9001/v2
+         auth_type = password
+         auth_url = {{ .KeystoneInternalURL }}
+         username = {{ .ServiceUser }}
+         password = {{ .ServicePassword }}
+         project_name = service
+         project_domain_name = Default
+         user_domain_name = Default
+         allow_reverse_dns_lookup = true
+         ipv4_ptr_zone_prefix_size = 24
+         ipv6_ptr_zone_prefix_size = 116
+         ptr_zone_email = admin@keenable.org
       replicas: 3
       override:
         service:
@@ -252,7 +247,10 @@ spec:
           networkAttachment: internalapi
       ovnNorthd: {}
       ovnController:
-        networkAttachment: internalapi
+        networkAttachment: tenant
+        nicMappings:
+          datacentre: br-ex
+          octavia: octbr
   placement:
     apiOverride:
       route: {}
@@ -392,3 +390,197 @@ spec:
      rabbitMqClusterName: rabbitmq
      secret: osp-secret
      serviceUser: heat
+
+
+############ Glance ######################
+  glance:
+    enabled: true
+    apiOverrides:
+      default:
+        route: {}
+    template:
+      customServiceConfig: |
+        [DEFAULT]
+        enabled_backends = image-conversion:rbd
+        [glance_store]
+        default_backend = image-conversion
+        [image-conversion]
+        rbd_store_ceph_conf = /etc/ceph/ceph.conf
+        store_description = "RBD backend"
+        rbd_store_pool = images
+        rbd_store_user = admin
+      databaseInstance: openstack
+      storage:
+        storageRequest: 5G
+      secret: osp-secret
+      keystoneEndpoint: default
+      glanceAPIs:
+        default:
+          replicas: 1 
+          override:
+            service:
+              internal:
+                metadata:
+                  annotations:
+                    metallb.universe.tf/address-pool: internalapi
+                    metallb.universe.tf/allow-shared-ip: internalapi
+                    metallb.universe.tf/loadBalancerIPs: 10.103.1.80
+                spec:
+                  type: LoadBalancer
+          networkAttachments:
+          - storage
+#######   octavia ###############
+  octavia:
+     enabled: true
+     template:
+       databaseInstance: openstack
+       redisServiceName: octavia-redis
+       octaviaHousekeeping:
+         networkAttachments:
+           - octavia
+       octaviaHealthManager:
+         networkAttachments:
+           - octavia
+       octaviaWorker:
+         networkAttachments:
+           - octavia
+       amphoraImageContainerImage: registry.redhat.io/rhoso/octavia-amphora-image-rhel9@sha256:312cd5e8ea9fe261c1929aefececbeb22afe5e433ae76ef0860d98e561db21c9
+  redis:
+     enabled: true
+     templates:
+       octavia-redis:
+         replicas: 1
+       designate-redis:
+         replicas: 1           
+  extraMounts:
+    - name: v1
+      region: r1
+      extraVol:
+        - propagation:
+          - CinderVolume
+          - CinderBackup
+          - GlanceAPI
+          - ManilaShare
+          extraVolType: Ceph
+          volumes:
+          - name: ceph
+            secret:
+              secretName: ceph-conf-files
+          mounts:
+          - name: ceph
+            mountPath: "/etc/ceph"
+            readOnly: true
+
+###### DNS as a service ################
+
+  designate:
+    apiOverride:
+      route: {}
+    enabled: true
+    template:
+      nsRecords:
+        - hostname: ns1.keenable.org.
+          priority: 1
+        - hostname: ns2.keenable.org.
+          priority: 2
+      designateAPI:
+        networkAttachments:
+        - internalapi
+        override:
+          service:
+            internal:
+              metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: internalapi
+                  metallb.universe.tf/allow-shared-ip: internalapi
+                  metallb.universe.tf/loadBalancerIPs: 10.103.1.80
+              spec:
+                type: LoadBalancer
+      designateBackendbind9:
+        controlNetworkName: designate
+        networkAttachments:
+          - designate
+        override:
+          services:
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.80
+              spec:
+                type: LoadBalancer
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.81
+              spec:
+                type: LoadBalancer
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.82
+              spec:
+                type: LoadBalancer
+        replicas: 3
+        resources: {}
+        serviceUser: designate
+        storageClass: ocs-external-storagecluster-ceph-rbd
+        storageRequest: 10G
+      designateCentral:
+        replicas: 3
+      designateMdns:
+        networkAttachments:
+          - designate
+        replicas: 3
+      designateProducer:
+        replicas: 3
+      designateUnbound:
+        defaultConfigOverwrite:
+          01-unbound.conf: |
+            server:
+              verbosity: 2
+              access-control: 172.28.0.0/24 allow
+              access-control: 100.64.0.0/10 allow
+              module-config: "iterator"
+          forwarders.conf: |
+            forward-zone:
+              name: "."
+              forward-addr: 172.11.5.155
+              forward-addr: 172.12.5.155
+        networkAttachments:
+          - designate
+        override:
+          services:
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.90
+              spec:
+                type: LoadBalancer
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.91
+              spec:
+                type: LoadBalancer
+            - metadata:
+                annotations:
+                  metallb.universe.tf/address-pool: designateext
+                  metallb.universe.tf/allow-shared-ip: designateext
+                  metallb.universe.tf/loadBalancerIPs: 10.104.1.93
+              spec:
+                type: LoadBalancer
+        replicas: 3
+        resources: {}
+        stubZones:
+          - name: keenable.org
+          - name: anotherkeenable.org
+      designateWorker:
+        databaseAccount: designate
+        networkAttachments:
+          - designate
+        replicas: 3

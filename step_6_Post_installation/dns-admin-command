@@ -1,0 +1,20 @@
+sh-5.1$ openstack project list
++----------------------------------+---------+
+| ID                               | Name    |
++----------------------------------+---------+
+| d11bcf0011d445e7860059ca38d24c76 | service |
+| f85f83b68c0a44aba2577ff5f99b2f00 | admin   |
++----------------------------------+--------
+
+openstack network create provider-200 --provider-network-type vlan  --provider-physical-network datacentre   --provider-segment 200 --dns-domain mygov.org. --project mygov
+
+openstack subnet create subnet-provider-200-dns \
+  --network 64ab08d5-1be5-4ac3-a735-e94e3ccfd255 \
+  --subnet-range 172.16.1.0/24 \
+  --gateway 172.16.1.1 \
+  --allocation-pool start=172.16.1.2,end=172.16.1.254 \
+  --dns-publish-fixed-ip
+
+
+sh-5.1$ openstack zone create --email example@example.com adminkeenable.org. --sudo-project-id f85f83b68c0a44aba2577ff5f99b2f00
+sh-5.1$ openstack subnet create as per your requirement

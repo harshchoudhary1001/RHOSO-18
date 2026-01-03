@@ -47,3 +47,17 @@ spec:
   - tenant
   interfaces:
   - tenant
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: designateext
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - designateext
+  interfaces:
+  - designateext
+  nodeSelectors:
+  - matchLabels:
+      node-role.kubernetes.io/worker: ""

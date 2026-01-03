@@ -77,3 +77,71 @@ spec:
         "range_end": "10.105.1.70"
       }
     }
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  labels:
+    osp/net: octavia
+  name: octavia
+  namespace: openstack
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "octavia",
+      "type": "bridge",
+      "bridge": "octbr",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "10.102.1.0/24",
+        "range_start": "10.102.1.30",
+        "range_end": "10.102.1.70",
+        "routes": [
+           {
+             "dst": "172.24.0.0/16",
+             "gw" : "10.102.1.150"
+           }
+           ]
+      }
+    }
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: designate
+  namespace: openstack
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "designate",
+      "type": "macvlan",
+      "master": "designate",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "10.101.1.0/24",
+        "range_start": "10.101.1.30",
+        "range_end": "10.101.1.70"
+      }
+    }
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: designateext
+  namespace: openstack
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "designateext",
+      "type": "macvlan",
+      "master": "designateext",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "10.104.1.0/24",
+        "range_start": "10.104.1.30",
+        "range_end": "10.104.1.70"
+      }
+    }
