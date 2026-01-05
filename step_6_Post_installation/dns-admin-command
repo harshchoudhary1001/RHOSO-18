@@ -17,4 +17,3 @@ openstack subnet create subnet-provider-200-dns \
 
 
 sh-5.1$ openstack zone create --email example@example.com adminkeenable.org. --sudo-project-id f85f83b68c0a44aba2577ff5f99b2f00
-sh-5.1$ openstack subnet create as per your requirement
